@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 )
 
 func storeState(r *http.Request) {
@@ -15,6 +16,7 @@ func storeState(r *http.Request) {
 }
 
 var state []byte
+var m sync.Mutex
 
 func handle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -33,8 +35,20 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func lockHandle(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodDelete:
+		log.Println("unlock")
+		m.Unlock()
+	case http.MethodPost:
+		log.Println("lock")
+		m.Lock()
+	}
+}
+
 func main() {
 	http.HandleFunc("/", handle)
+	http.HandleFunc("/lock", lockHandle)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
